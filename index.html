@@ -1,13 +1,112 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+  <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>MM AutoLink</title>
+  <link rel="stylesheet" href="style.css">
 </head>
+
 <body>
 
-  <h1>MM AutoLink</h1>
-  <p>Vehicle Management System</p>
+  <header class="topbar">
+    <div>
+      <h1>MM AutoLink</h1>
+      <p>Vehicle Management System</p>
+    </div>
+  </header>
+
+  <main class="container">
+
+    <section class="dashboard">
+      <div class="card">
+        <span>Total Vehicles</span>
+        <strong id="totalVehicles">0</strong>
+      </div>
+
+      <div class="card">
+        <span>Total Purchases</span>
+        <strong id="totalPurchases">₹0</strong>
+      </div>
+
+      <div class="card">
+        <span>Total Sales</span>
+        <strong id="totalSales">₹0</strong>
+      </div>
+
+      <div class="card">
+        <span>Total Profit</span>
+        <strong id="totalProfit">₹0</strong>
+      </div>
+    </section>
+
+    <section class="actions">
+      <button onclick="showForm('purchase')">＋ Add Purchase</button>
+      <button onclick="showForm('sale')">＋ Add Sale</button>
+    </section>
+
+    <section id="formSection" class="form-section hidden">
+
+      <h2 id="formTitle">Add Vehicle</h2>
+
+      <form id="vehicleForm">
+
+        <label>Vehicle Number</label>
+        <input id="vehicleNumber" type="text" placeholder="KA01AB1234" required>
+
+        <label>Vehicle Model</label>
+        <input id="vehicleModel" type="text" placeholder="Honda Activa 6G" required>
+
+        <label>Year</label>
+        <input id="vehicleYear" type="number" placeholder="2024">
+
+        <label>Owner</label>
+        <input id="ownerName" type="text" placeholder="1st Owner">
+
+        <label>Phone Number</label>
+        <input id="phoneNumber" type="tel" placeholder="9876543210">
+
+        <label>Price</label>
+        <input id="vehiclePrice" type="number" placeholder="50000" required>
+
+        <label>RC Status</label>
+        <select id="rcStatus">
+          <option value="Available">Available</option>
+          <option value="Pending">Pending</option>
+          <option value="Not Available">Not Available</option>
+        </select>
+
+        <label>Notes</label>
+        <textarea id="notes" placeholder="Any important details"></textarea>
+
+        <div class="form-buttons">
+          <button type="submit">Save Vehicle</button>
+          <button type="button" onclick="closeForm()">Cancel</button>
+        </div>
+
+      </form>
+    </section>
+
+    <section class="register">
+      <div class="section-header">
+        <h2>Vehicle Register</h2>
+        <input id="searchBox" type="search" placeholder="Search vehicle...">
+      </div>
+
+      <div id="vehicleList">
+        <div class="empty">
+          No vehicles added yet.
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer>
+    <p>MM AutoLink • Private Vehicle Register</p>
+  </footer>
+
+  <script src="app.js"></script>
 
 </body>
 </html>
