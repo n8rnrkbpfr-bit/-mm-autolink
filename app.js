@@ -1,248 +1,90 @@
-let vehicles = JSON.parse(localStorage.getItem("mmAutoLinkVehicles")) || [];
-let currentType = "purchase";
+const SUPABASE_URL = 'https://ksxzwpygnhgqftioaroe.supabase.co';
+const SUPABASE_KEY = 'Sb_publishable_CDe3g2OvMGRKNn9Q-FFK7Q_2-TcZC4n';
+const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
 
-document.addEventListener("DOMContentLoaded", () => {
-  updateDashboard();
-  renderVehicles();
+document.addEventListener('DOMContentLoaded', () => {
+    fetchVehicles();
+    
+    const form = document.getElementById('vehicle-form');
+    if (form) {
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            
+            const vehicleData = {
+                vehicle_number: document.getElementById('vehicle-number').value,
+                vehicle_model: document.getElementById('vehicle-model').value,
+                year: document.getElementById('vehicle-year').value,
+                owner: document.getElementById('vehicle-owner').value,
+                phone: document.getElementById('phone-number').value,
+                price: parseFloat(document.getElementById('price').value) || 0,
+                rc_status: document.getElementById('rc-status').value,
+                notes: document.getElementById('notes').value,
+                type: 'purchase'
+            };
 
-  document
-    .getElementById("vehicleForm")
-    .addEventListener("submit", saveVehicle);
-
-  document
-    .getElementById("searchBox")
-    .addEventListener("input", renderVehicles);
+            const { data, error } = await supabase.from('vehicles').insert([vehicleData]);
+            
+            if (error) {
+                alert('Error saving vehicle: ' + error.message);
+            } else {
+                form.reset();
+                fetchVehicles();
+            }
+        });
+    }
 });
 
-function showForm(type) {
-  currentType = type;
-
-  document.getElementById("formSection").classList.remove("hidden");
-
-  document.getElementById("formTitle").textContent =
-    type === "purchase" ? "Add Purchase" : "Add Sale";
-
-  document.getElementById("vehicleForm").reset();
-
-  window.scrollTo({
-    top: document.getElementById("formSection").offsetTop,
-    behavior: "smooth"
-  });
+async function fetchVehicles() {
+    const { data: vehicles, error } = await supabase.from('vehicles').select('*').order('created_at', { ascending: false });
+    
+    if (error) {
+        console.error('Error fetching vehicles:', error);
+        return;
+    }
+    
+    renderVehicles(vehicles || []);
+    updateDashboard(vehicles || []);
 }
 
-function closeForm() {
-  document.getElementById("formSection").classList.add("hidden");
+function renderVehicles(vehicles) {
+    const container = document.getElementById('vehicle-list');
+    if (!container) return;
+    
+    container.innerHTML = '';
+    vehicles.forEach(v => {
+        const card = document.createElement('div');
+        card.className = 'vehicle-card';
+        card.innerHTML = `
+            <h3>${v.vehicle_number} - ${v.vehicle_model}</h3>
+            <p><strong>Year:</strong> ${v.year} | <strong>Owner:</strong> ${v.owner}</p>
+            <p><strong>Phone:</strong> ${v.phone}</p>
+            <p><strong>Price:</strong> ₹${v.price}</p>
+            <p><strong>RC Status:</strong> ${v.rc_status}</p>
+            <p><strong>Notes:</strong> ${v.notes || 'N/A'}</p>
+            <button onclick="deleteVehicle('${v.id}')">Delete</button>
+        `;
+        container.appendChild(card);
+    });
 }
 
-function saveVehicle(event) {
-  event.preventDefault();
-
-  const vehicle = {
-    id: Date.now(),
-
-    type: currentType,
-
-    vehicleNumber:
-      document.getElementById("vehicleNumber").value.trim().toUpperCase(),
-
-    model:
-      document.getElementById("vehicleModel").value.trim(),
-
-    year:
-      document.getElementById("vehicleYear").value,
-
-    owner:
-      document.getElementById("ownerName").value.trim(),
-
-    phone:
-      document.getElementById("phoneNumber").value.trim(),
-
-    price:
-      Number(document.getElementById("vehiclePrice").value) || 0,
-
-    rcStatus:
-      document.getElementById("rcStatus").value,
-
-    notes:
-      document.getElementById("notes").value.trim(),
-
-    date:
-      new Date().toISOString()
-  };
-
-  vehicles.push(vehicle);
-
-  localStorage.setItem(
-    "mmAutoLinkVehicles",
-    JSON.stringify(vehicles)
-  );
-
-  updateDashboard();
-  renderVehicles();
-  closeForm();
-
-  alert(
-    currentType === "purchase"
-      ? "Purchase saved successfully!"
-      : "Sale saved successfully!"
-  );
+function updateDashboard(vehicles) {
+    const totalVehicles = document.getElementById('total-vehicles');
+    const totalPurchases = document.getElementById('total-purchases');
+    
+    if (totalVehicles) totalVehicles.textContent = vehicles.length;
+    if (totalPurchases) {
+        const totalSum = vehicles.reduce((sum, v) => sum + (Number(v.price) || 0), 0);
+        totalPurchases.textContent = '₹' + totalSum.toLocaleString('en-IN');
+    }
 }
 
-function updateDashboard() {
-  const totalVehicles = vehicles.length;
-
-  const purchases = vehicles.filter(
-    vehicle => vehicle.type === "purchase"
-  );
-
-  const sales = vehicles.filter(
-    vehicle => vehicle.type === "sale"
-  );
-
-  const purchaseTotal = purchases.reduce(
-    (sum, vehicle) => sum + vehicle.price,
-    0
-  );
-
-  const saleTotal = sales.reduce(
-    (sum, vehicle) => sum + vehicle.price,
-    0
-  );
-
-  const profit = saleTotal - purchaseTotal;
-
-  document.getElementById("totalVehicles").textContent =
-    totalVehicles;
-
-  document.getElementById("totalPurchases").textContent =
-    formatMoney(purchaseTotal);
-
-  document.getElementById("totalSales").textContent =
-    formatMoney(saleTotal);
-
-  document.getElementById("totalProfit").textContent =
-    formatMoney(profit);
-}
-
-function renderVehicles() {
-  const list = document.getElementById("vehicleList");
-  const search = document
-    .getElementById("searchBox")
-    .value
-    .toLowerCase()
-    .trim();
-
-  const filtered = vehicles.filter(vehicle =>
-    vehicle.vehicleNumber.toLowerCase().includes(search) ||
-    vehicle.model.toLowerCase().includes(search) ||
-    vehicle.phone.toLowerCase().includes(search)
-  );
-
-  if (filtered.length === 0) {
-    list.innerHTML = `
-      <div class="empty">
-        No vehicles found.
-      </div>
-    `;
-    return;
-  }
-
-  list.innerHTML = filtered
-    .slice()
-    .reverse()
-    .map(vehicle => `
-      <div class="vehicle-card">
-
-        <div class="vehicle-top">
-          <div>
-            <h3>${escapeHTML(vehicle.model)}</h3>
-            <strong>${escapeHTML(vehicle.vehicleNumber)}</strong>
-          </div>
-
-          <span class="badge ${vehicle.type}">
-            ${vehicle.type === "purchase" ? "PURCHASE" : "SALE"}
-          </span>
-        </div>
-
-        <div class="vehicle-details">
-
-          <p>
-            <b>Year:</b>
-            ${escapeHTML(vehicle.year || "-")}
-          </p>
-
-          <p>
-            <b>Owner:</b>
-            ${escapeHTML(vehicle.owner || "-")}
-          </p>
-
-          <p>
-            <b>Phone:</b>
-            ${escapeHTML(vehicle.phone || "-")}
-          </p>
-
-          <p>
-            <b>Price:</b>
-            ${formatMoney(vehicle.price)}
-          </p>
-
-          <p>
-            <b>RC:</b>
-            ${escapeHTML(vehicle.rcStatus)}
-          </p>
-
-        </div>
-
-        ${
-          vehicle.notes
-            ? `<p class="notes"><b>Notes:</b> ${escapeHTML(vehicle.notes)}</p>`
-            : ""
+async function deleteVehicle(id) {
+    if (confirm('Are you sure you want to delete this vehicle?')) {
+        const { error } = await supabase.from('vehicles').delete().eq('id', id);
+        if (error) {
+            alert('Error deleting: ' + error.message);
+        } else {
+            fetchVehicles();
         }
-
-        <button
-          class="delete-button"
-          onclick="deleteVehicle(${vehicle.id})">
-          Delete
-        </button>
-
-      </div>
-    `)
-    .join("");
-}
-
-function deleteVehicle(id) {
-  const confirmed = confirm(
-    "Delete this vehicle record?"
-  );
-
-  if (!confirmed) return;
-
-  vehicles = vehicles.filter(
-    vehicle => vehicle.id !== id
-  );
-
-  localStorage.setItem(
-    "mmAutoLinkVehicles",
-    JSON.stringify(vehicles)
-  );
-
-  updateDashboard();
-  renderVehicles();
-}
-
-function formatMoney(amount) {
-  return new Intl.NumberFormat("en-IN", {
-    style: "currency",
-    currency: "INR",
-    maximumFractionDigits: 0
-  }).format(amount);
-}
-
-function escapeHTML(value) {
-  return String(value)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    }
 }
